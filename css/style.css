@@ -623,3 +623,135 @@ a { text-decoration: none; color: inherit; }
   .quiz-answers { gap: 8px; }
   .quiz-topbar { padding: 8px 10px; }
 }
+
+/* ── Profession Cards (Berufsauswahl) ─────────────────────── */
+.prof-card.fi-si { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.prof-card.fi-ae { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.prof-card.wiso  { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: #0d2d1a; }
+.prof-card.wiso .card-chip { background: rgba(0,0,0,0.15); }
+
+/* ── Share / Code Button ──────────────────────────────────── */
+.share-quiz-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 6px auto 0;
+  padding: 10px 24px;
+  border-radius: 32px;
+  font-size: 0.9rem; font-weight: 800;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+.share-quiz-btn:hover { background: var(--bg3); border-color: rgba(255,255,255,0.2); }
+
+/* ── Quiz-Code Entry (Startseite) ─────────────────────────── */
+.quiz-code-entry {
+  padding: 0 24px 48px;
+  max-width: 520px; margin: 0 auto; width: 100%;
+}
+.qce-inner {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 28px 32px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.qce-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+.qce-inner h3 { font-size: 1.3rem; font-weight: 900; margin-bottom: 6px; }
+.qce-inner p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
+.qce-input-row { display: flex; gap: 10px; justify-content: center; }
+.qce-input {
+  padding: 12px 18px;
+  border-radius: 32px;
+  border: 2px solid var(--border);
+  background: var(--bg3);
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.1rem; font-weight: 800;
+  letter-spacing: 0.15em;
+  text-align: center;
+  width: 160px;
+  transition: border-color 0.2s;
+}
+.qce-input:focus { outline: none; border-color: var(--ap1); }
+.qce-btn {
+  padding: 12px 22px;
+  border-radius: 32px;
+  background: linear-gradient(135deg, var(--ap1), var(--ap1b));
+  color: white; font-size: 0.95rem; font-weight: 800;
+  transition: var(--transition);
+  box-shadow: 0 4px 16px rgba(102,126,234,0.4);
+}
+.qce-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.qce-error {
+  margin-top: 12px;
+  color: var(--red-light);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* ── Modal ────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.2s ease;
+}
+.modal-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  max-width: 440px; width: 100%;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+  border: 1px solid var(--border);
+  animation: slideUp 0.25s ease;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.modal-header h2 { font-size: 1.2rem; font-weight: 900; }
+.modal-close {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--bg3);
+  color: var(--text-muted);
+  font-size: 0.95rem; font-weight: 800;
+  transition: var(--transition);
+}
+.modal-close:hover { background: var(--bg); color: var(--text); }
+.modal-body { text-align: center; }
+.modal-sub { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
+
+/* ── Code Display ─────────────────────────────────────────── */
+.code-display {
+  background: var(--bg3);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 2px dashed var(--ap1);
+}
+.code-letters {
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  background: linear-gradient(135deg, var(--ap1), var(--ap2));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  display: block;
+}
+.modal-hint {
+  font-size: 0.85rem; color: var(--text-muted);
+  line-height: 1.6; margin-bottom: 20px;
+}
+.btn-copy {
+  padding: 10px 28px;
+  border-radius: 32px;
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 0.9rem; font-weight: 800;
+  transition: var(--transition);
+}
+.btn-copy:hover { background: var(--bg); border-color: rgba(255,255,255,0.2); }
