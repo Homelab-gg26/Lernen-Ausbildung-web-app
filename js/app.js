@@ -55,6 +55,35 @@ function setTopicProgress(profId, examId, topicId, data) {
   saveProgress();
 }
 
+/* ── Theme (Dark / Light) ───────────────────────────────────── */
+const THEME_KEY = 'appTheme';
+
+function getTheme() {
+  return localStorage.getItem(THEME_KEY) || 'dark';
+}
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  localStorage.setItem(THEME_KEY, theme);
+  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+    btn.textContent = theme === 'light' ? '🌙' : '☀️';
+    btn.title = theme === 'light' ? 'Dark Mode' : 'Light Mode';
+  });
+}
+
+function toggleTheme() {
+  applyTheme(getTheme() === 'light' ? 'dark' : 'light');
+}
+
+function themeBtn() {
+  const t = getTheme();
+  return `<button class="theme-toggle-btn" onclick="toggleTheme()" title="${t === 'light' ? 'Dark Mode' : 'Light Mode'}">${t === 'light' ? '🌙' : '☀️'}</button>`;
+}
+
 /* ── Helpers ───────────────────────────────────────────────── */
 function shuffle(arr) {
   const a = [...arr];
@@ -104,6 +133,7 @@ function showHome() {
     <div class="screen screen-fade">
       <div class="home-hero">
         <button class="settings-nav-btn" onclick="showSettings('home')" title="Einstellungen">⚙️</button>
+        <button class="theme-toggle-home-btn" onclick="toggleTheme()" title="Theme wechseln" style="position:absolute;top:18px;right:66px;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);font-size:1rem;display:flex;align-items:center;justify-content:center;transition:var(--transition);z-index:10;box-shadow:var(--shadow-sm);">${getTheme() === 'light' ? '🌙' : '☀️'}</button>
         <span class="logo-icon">⚡</span>
         <h1>IT-Lernplattform</h1>
         ${loadSettings().profile.name
@@ -178,7 +208,7 @@ function showProfession(profId) {
       <nav class="topnav">
         <button class="topnav-back" onclick="showHome()"><span class="arrow">←</span> Start</button>
         <div class="topnav-title">${d.icon} ${d.shortName}</div>
-        <div class="topnav-right"></div>
+        <div class="topnav-right">${themeBtn()}</div>
       </nav>
       <div class="subject-header">
         <div class="icon">${d.icon}</div>
@@ -228,7 +258,7 @@ function showExam(profId, examId) {
       <nav class="topnav">
         <button class="topnav-back" onclick="showProfession('${profId}')"><span class="arrow">←</span> ${d.shortName}</button>
         <div class="topnav-title">${exam.icon} ${exam.name}</div>
-        <div class="topnav-right"></div>
+        <div class="topnav-right">${themeBtn()}</div>
       </nav>
       <div class="subject-header">
         <div class="icon">${exam.icon}</div>
@@ -294,7 +324,7 @@ function renderLearnCard() {
           <span class="arrow">←</span> ${exam.name}
         </button>
         <div class="topnav-title">${topic.icon} ${topic.name}</div>
-        <div class="topnav-right"></div>
+        <div class="topnav-right">${themeBtn()}</div>
       </nav>
       <div class="learn-container">
         <div class="learn-progress">
@@ -762,7 +792,7 @@ function showSettings(fromScreen) {
       <nav class="topnav">
         <button class="topnav-back" onclick="settingsBack()"><span class="arrow">←</span> Zurück</button>
         <div class="topnav-title">⚙️ Einstellungen</div>
-        <div class="topnav-right"></div>
+        <div class="topnav-right">${themeBtn()}</div>
       </nav>
 
       <div class="settings-container">
@@ -1043,26 +1073,183 @@ function showSettings(fromScreen) {
           </div>
         </div>
 
-        <!-- ── Daten & Reset ── -->
+        <!-- ── SQLite Datenbank ── -->
         <div class="settings-section">
           <div class="settings-section-header">
             <span class="settings-section-icon">🗄️</span>
-            <h2>Daten</h2>
+            <h2>SQLite-Datenbank</h2>
+          </div>
+
+          <div class="settings-card">
+
+            <!-- Status-Anzeige -->
+            <div class="db-status-bar" id="dbStatusBar">
+              <div class="db-status-dot" id="dbStatusDot"></div>
+              <span id="dbStatusText">Nicht initialisiert</span>
+              <button class="db-status-btn" id="dbStatusBtn" onclick="dbInit()">Initialisieren</button>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- Auto-Import aus localStorage -->
+            <div class="settings-row settings-row-col">
+              <div class="settings-label">
+                <span class="settings-label-title">Auto-Import aus App-Daten</span>
+                <span class="settings-label-sub">Überträgt Fortschritt, Einstellungen und Quiz-Codes aus dem Browser in die SQLite-DB</span>
+              </div>
+              <button class="settings-action-btn db-action" id="btnAutoImport" onclick="dbAutoImport()" disabled>
+                ⬆️ Jetzt importieren
+              </button>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- .db-Datei importieren -->
+            <div class="settings-row settings-row-col">
+              <div class="settings-label">
+                <span class="settings-label-title">SQLite-Datei laden (.db / .sqlite)</span>
+                <span class="settings-label-sub">Vorhandene Datenbank öffnen und deren Inhalte in die App übernehmen</span>
+              </div>
+              <label class="settings-action-btn db-action" id="btnFileImport">
+                📂 Datei wählen
+                <input type="file" id="dbFileInput" accept=".db,.sqlite,.sqlite3"
+                  style="display:none" onchange="dbImportFile(event)">
+              </label>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- .sql-Datei importieren -->
+            <div class="settings-row settings-row-col">
+              <div class="settings-label">
+                <span class="settings-label-title">SQL-Datei ausführen (.sql)</span>
+                <span class="settings-label-sub">Schema oder Seed-Datei in die geöffnete Datenbank einspielen</span>
+              </div>
+              <label class="settings-action-btn db-action" id="btnSqlImport">
+                📄 SQL-Datei wählen
+                <input type="file" id="sqlFileInput" accept=".sql,.txt"
+                  style="display:none" onchange="dbRunSqlFile(event)">
+              </label>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- DB exportieren -->
+            <div class="settings-row settings-row-col">
+              <div class="settings-label">
+                <span class="settings-label-title">Datenbank herunterladen</span>
+                <span class="settings-label-sub">Aktuelle DB als lernplattform.db speichern</span>
+              </div>
+              <button class="settings-action-btn db-action" id="btnDbExport" onclick="dbExportFile()" disabled>
+                💾 DB herunterladen
+              </button>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- SQL-Abfrage -->
+            <div class="db-query-section">
+              <div class="db-query-header">
+                <span class="settings-label-title">🔍 SQL-Abfrage ausführen</span>
+                <button class="db-run-btn" id="btnRunSql" onclick="dbRunQuery()" disabled>▶ Ausführen</button>
+              </div>
+              <textarea id="dbQueryInput" class="db-query-input"
+                placeholder="SELECT * FROM users;" rows="3"></textarea>
+              <div id="dbQueryResult" class="db-query-result hidden"></div>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- Frage hinzufügen -->
+            <div class="db-query-section">
+              <div class="db-query-header">
+                <span class="settings-label-title">➕ Neue Frage eintragen</span>
+                <button class="db-run-btn" id="btnInsertFrage" onclick="dbInsertFrage()" disabled>💾 Speichern</button>
+              </div>
+
+              <div class="qf-grid">
+
+                <!-- Thema -->
+                <div class="qf-field qf-field-full">
+                  <label class="qf-label">Thema</label>
+                  <select id="qfThema" class="qf-select">
+                    <option value="">– Thema wählen –</option>
+                    ${Object.values(REGISTRY).flatMap(d =>
+                      Object.values(d.exams).flatMap(e =>
+                        e.topics.map(t =>
+                          `<option value="${d.id}|${e.id}|${t.id}">${d.shortName} · ${e.name} · ${t.name}</option>`
+                        )
+                      )
+                    ).join('')}
+                  </select>
+                </div>
+
+                <!-- Fragetext -->
+                <div class="qf-field qf-field-full">
+                  <label class="qf-label">Frage</label>
+                  <textarea id="qfFrage" class="qf-textarea" rows="2" placeholder="Wie lautet die Frage?"></textarea>
+                </div>
+
+                <!-- 4 Antwortmöglichkeiten -->
+                ${[0,1,2,3].map(i => `
+                <div class="qf-field qf-field-answer">
+                  <label class="qf-label">
+                    <span class="qf-answer-letter">${['A','B','C','D'][i]}</span>
+                    Antwort ${i+1}
+                    <span class="qf-correct-badge" id="qfCorrectBadge${i}" style="display:none">✓ Richtig</span>
+                  </label>
+                  <div class="qf-answer-row">
+                    <input type="text" id="qfOpt${i}" class="qf-input" placeholder="Antwortmöglichkeit ${i+1}">
+                    <label class="qf-radio-wrap" title="Als richtige Antwort markieren">
+                      <input type="radio" name="qfCorrect" value="${i}" onchange="qfMarkCorrect(${i})">
+                      <span class="qf-radio-btn">✓</span>
+                    </label>
+                  </div>
+                </div>`).join('')}
+
+                <!-- Erklärung -->
+                <div class="qf-field qf-field-full">
+                  <label class="qf-label">Erklärung <span class="qf-optional">(wird nach Antwort angezeigt)</span></label>
+                  <textarea id="qfErklaerung" class="qf-textarea" rows="2" placeholder="Warum ist diese Antwort richtig?"></textarea>
+                </div>
+
+              </div>
+
+              <div id="qfResult" class="db-query-result hidden"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Log-Fenster ── -->
+        <div class="settings-section" id="dbLogSection" style="display:none">
+          <div class="settings-section-header">
+            <span class="settings-section-icon">📋</span>
+            <h2>Import-Protokoll</h2>
+          </div>
+          <div class="db-log" id="dbLog"></div>
+        </div>
+
+        <!-- ── Daten & Reset ── -->
+        <div class="settings-section">
+          <div class="settings-section-header">
+            <span class="settings-section-icon">📦</span>
+            <h2>App-Daten</h2>
           </div>
 
           <div class="settings-card">
             <div class="settings-row settings-row-info">
-              <span class="settings-label-title">Datenbank-Schema</span>
-              <a class="settings-link" onclick="showDbInfo()">📄 Schema ansehen</a>
+              <span class="settings-label-title">Datenbank-Schema ansehen</span>
+              <a class="settings-link" onclick="showDbInfo()">📄 Schema</a>
             </div>
             <div class="settings-divider"></div>
             <div class="settings-row settings-row-info">
-              <span class="settings-label-title">Fortschritt exportieren</span>
-              <button class="settings-action-btn" onclick="exportData()">💾 Export (JSON)</button>
+              <span class="settings-label-title">Fortschritt exportieren (JSON)</span>
+              <button class="settings-action-btn" onclick="exportData()">💾 Export</button>
             </div>
             <div class="settings-divider"></div>
             <div class="settings-row settings-row-info">
-              <span class="settings-label-title">Alle Daten löschen</span>
+              <span class="settings-label-title">Alle App-Daten löschen</span>
               <button class="settings-action-btn danger" onclick="confirmReset()">🗑️ Zurücksetzen</button>
             </div>
           </div>
@@ -1206,8 +1393,455 @@ function showDbInfo() {
   document.body.appendChild(overlay);
 }
 
+/* ════════════════════════════════════════════════════════════
+   SQLITE ENGINE (sql.js – WebAssembly)
+   ════════════════════════════════════════════════════════════ */
+
+let _sqlJs = null;   // sql.js Instanz (nach initSqlJs)
+let _db    = null;   // aktive SQLite-DB
+
+/* ── sql.js laden (lazy, einmalig) ────────────────────────── */
+async function ensureSqlJs() {
+  if (_sqlJs) return _sqlJs;
+  if (typeof initSqlJs === 'undefined') {
+    throw new Error('sql.js nicht geladen – prüfe die Internet-Verbindung.');
+  }
+  _sqlJs = await initSqlJs({
+    locateFile: file =>
+      `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+  });
+  return _sqlJs;
+}
+
+/* ── Hilfsfunktionen ───────────────────────────────────────── */
+function dbLog(msg, type = 'info') {
+  const log = document.getElementById('dbLog');
+  const section = document.getElementById('dbLogSection');
+  if (!log) return;
+  section.style.display = '';
+  const line = document.createElement('div');
+  line.className = `db-log-line db-log-${type}`;
+  const time = new Date().toLocaleTimeString('de-DE');
+  line.innerHTML = `<span class="db-log-time">${time}</span> ${msg}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function dbSetStatus(state, text) {
+  const dot  = document.getElementById('dbStatusDot');
+  const txt  = document.getElementById('dbStatusText');
+  const btn  = document.getElementById('dbStatusBtn');
+  if (!dot) return;
+  dot.className = `db-status-dot db-status-${state}`;
+  txt.textContent = text;
+  btn.textContent = state === 'ok' ? 'Schließen' : 'Initialisieren';
+  btn.onclick = state === 'ok' ? dbClose : dbInit;
+
+  const dbBtns = ['btnAutoImport','btnDbExport','btnRunSql','btnInsertFrage'];
+  dbBtns.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = (state !== 'ok');
+  });
+}
+
+function dbEscape(val) {
+  if (val === null || val === undefined) return 'NULL';
+  if (typeof val === 'number') return val;
+  return `'${String(val).replace(/'/g, "''")}'`;
+}
+
+/* ── DB initialisieren (neue leere DB + Schema anlegen) ────── */
+async function dbInit() {
+  dbSetStatus('loading', 'Wird initialisiert …');
+  dbLog('sql.js wird geladen …');
+  try {
+    const SQL = await ensureSqlJs();
+    _db = new SQL.Database();
+    dbLog('Leere SQLite-Datenbank erstellt.', 'ok');
+
+    // Schema aus db/schema.sql via fetch laden (wenn vorhanden)
+    try {
+      const resp = await fetch('db/schema.sql');
+      if (resp.ok) {
+        const sql = await resp.text();
+        _db.run(sql);
+        dbLog('Schema aus db/schema.sql eingespielt.', 'ok');
+      }
+    } catch {
+      dbLog('db/schema.sql nicht erreichbar – nur leere DB.', 'warn');
+    }
+
+    dbSetStatus('ok', 'Datenbank bereit');
+    dbLog('✅ Initialisierung abgeschlossen.', 'ok');
+    showToast('SQLite bereit ✓');
+  } catch (err) {
+    dbSetStatus('error', 'Fehler: ' + err.message);
+    dbLog('❌ ' + err.message, 'error');
+  }
+}
+
+/* ── DB schließen ──────────────────────────────────────────── */
+function dbClose() {
+  if (_db) { _db.close(); _db = null; }
+  dbSetStatus('idle', 'Nicht verbunden');
+  dbLog('Datenbank geschlossen.');
+  showToast('DB geschlossen');
+}
+
+/* ── Auto-Import: localStorage → SQLite ────────────────────── */
+async function dbAutoImport() {
+  if (!_db) { showToast('DB zuerst initialisieren!'); return; }
+
+  dbLog('──── Auto-Import gestartet ────');
+  let total = 0;
+
+  try {
+    // ── 1. User ──────────────────────────────────────────────
+    const s = loadSettings();
+    let userUuid = localStorage.getItem('userUuid');
+    if (!userUuid) {
+      userUuid = crypto.randomUUID();
+      localStorage.setItem('userUuid', userUuid);
+    }
+
+    const existing = _db.exec(
+      `SELECT id FROM users WHERE uuid = ${dbEscape(userUuid)}`
+    );
+    let userId;
+
+    if (existing.length && existing[0].values.length) {
+      userId = existing[0].values[0][0];
+      _db.run(`UPDATE users SET name=${dbEscape(s.profile.name)},
+        avatar=${dbEscape(s.profile.avatar)},
+        beruf=${dbEscape(s.profile.beruf)},
+        pruefungsjahr=${dbEscape(s.profile.pruefungsjahr || null)},
+        zuletzt_aktiv=CURRENT_TIMESTAMP WHERE id=${userId}`);
+      dbLog(`Nutzer aktualisiert (ID ${userId}).`, 'ok');
+    } else {
+      _db.run(`INSERT INTO users (uuid,name,avatar,beruf,pruefungsjahr)
+        VALUES (${dbEscape(userUuid)},${dbEscape(s.profile.name)},
+        ${dbEscape(s.profile.avatar)},${dbEscape(s.profile.beruf)},
+        ${dbEscape(s.profile.pruefungsjahr || null)})`);
+      const res = _db.exec(`SELECT id FROM users WHERE uuid=${dbEscape(userUuid)}`);
+      userId = res[0].values[0][0];
+      dbLog(`Neuer Nutzer angelegt (ID ${userId}).`, 'ok');
+      total++;
+    }
+
+    // ── 2. Einstellungen ─────────────────────────────────────
+    let settingsCount = 0;
+    for (const [sektion, obj] of Object.entries(s)) {
+      if (sektion === 'profile') continue;
+      for (const [key, val] of Object.entries(obj)) {
+        _db.run(`INSERT OR REPLACE INTO user_settings
+          (user_id,sektion,schluessel,wert,geaendert_am)
+          VALUES (${userId},${dbEscape(sektion)},${dbEscape(key)},
+          ${dbEscape(String(val))},CURRENT_TIMESTAMP)`);
+        settingsCount++;
+      }
+    }
+    dbLog(`${settingsCount} Einstellungen übertragen.`, 'ok');
+    total += settingsCount;
+
+    // ── 3. Lernfortschritt ───────────────────────────────────
+    const prog = JSON.parse(localStorage.getItem('lernProgress') || '{}');
+    let progCount = 0;
+    for (const [key, val] of Object.entries(prog)) {
+      const parts = key.split('_');
+      if (parts.length < 3) continue;
+      const [beruf, pruefung, ...rest] = parts;
+      const themaId = rest.join('_');
+      _db.run(`INSERT OR REPLACE INTO lernfortschritt
+        (user_id,beruf,pruefung,thema_id,gelernt,best_score,versuche,aktualisiert_am)
+        VALUES (${userId},${dbEscape(beruf)},${dbEscape(pruefung)},
+        ${dbEscape(themaId)},${val.learned ? 1 : 0},
+        ${dbEscape(val.bestScore || 0)},${dbEscape(val.attempts || 0)},
+        CURRENT_TIMESTAMP)`);
+      progCount++;
+    }
+    dbLog(`${progCount} Lernfortschritt-Einträge übertragen.`, 'ok');
+    total += progCount;
+
+    // ── 4. Quiz-Codes ────────────────────────────────────────
+    const codes = JSON.parse(localStorage.getItem(QUIZ_STORE_KEY) || '{}');
+    let codeCount = 0;
+    for (const [code, cfg] of Object.entries(codes)) {
+      const gueltigBis = new Date(cfg.created + 24*60*60*1000).toISOString();
+      try {
+        _db.run(`INSERT OR IGNORE INTO quiz_codes
+          (code,erstellt_von,beruf,pruefung,thema_id,erstellt_am,gueltig_bis)
+          VALUES (${dbEscape(code)},${userId},${dbEscape(cfg.profId)},
+          ${dbEscape(cfg.examId)},${dbEscape(cfg.topicId || null)},
+          CURRENT_TIMESTAMP,${dbEscape(gueltigBis)})`);
+        codeCount++;
+      } catch { /* ignoriere Duplikate */ }
+    }
+    dbLog(`${codeCount} Quiz-Codes übertragen.`, 'ok');
+    total += codeCount;
+
+    dbLog(`✅ Auto-Import abgeschlossen: ${total} Datensätze.`, 'ok');
+    showToast(`Import: ${total} Datensätze ✓`);
+    dbRefreshStatus();
+
+  } catch (err) {
+    dbLog('❌ Fehler: ' + err.message, 'error');
+    showToast('Import fehlgeschlagen!');
+  }
+}
+
+/* ── .db/.sqlite Datei laden ───────────────────────────────── */
+async function dbImportFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  dbLog(`Datei geladen: ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
+
+  try {
+    const SQL = await ensureSqlJs();
+    const buf = await file.arrayBuffer();
+    if (_db) _db.close();
+    _db = new SQL.Database(new Uint8Array(buf));
+    dbSetStatus('ok', `${file.name} geöffnet`);
+    dbLog(`✅ Datenbank "${file.name}" erfolgreich geöffnet.`, 'ok');
+    dbRefreshStatus();
+    showToast(`${file.name} geladen ✓`);
+  } catch (err) {
+    dbLog('❌ Datei konnte nicht geöffnet werden: ' + err.message, 'error');
+    dbSetStatus('error', 'Ladefehler');
+    showToast('Datei fehlerhaft!');
+  }
+  event.target.value = '';
+}
+
+/* ── .sql Datei ausführen ──────────────────────────────────── */
+async function dbRunSqlFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!_db) { showToast('DB zuerst initialisieren!'); return; }
+
+  dbLog(`SQL-Datei: ${file.name}`);
+  try {
+    const text = await file.text();
+    const statements = text
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('--'));
+
+    let ok = 0, skip = 0;
+    for (const stmt of statements) {
+      try {
+        _db.run(stmt);
+        ok++;
+      } catch (e) {
+        dbLog(`⚠️ Übersprungen: ${stmt.substring(0,60)}… → ${e.message}`, 'warn');
+        skip++;
+      }
+    }
+    dbLog(`✅ ${file.name}: ${ok} Statements ausgeführt, ${skip} übersprungen.`, 'ok');
+    dbRefreshStatus();
+    showToast(`SQL eingespielt: ${ok} Statements ✓`);
+  } catch (err) {
+    dbLog('❌ Fehler beim Lesen der Datei: ' + err.message, 'error');
+  }
+  event.target.value = '';
+}
+
+/* ── Abfrage ausführen (SQL-Konsole) ───────────────────────── */
+function dbRunQuery() {
+  if (!_db) { showToast('DB zuerst initialisieren!'); return; }
+  const input = document.getElementById('dbQueryInput');
+  const result = document.getElementById('dbQueryResult');
+  const sql = (input?.value || '').trim();
+  if (!sql) return;
+  result.classList.remove('hidden');
+
+  try {
+    const res = _db.exec(sql);
+    if (!res.length) {
+      result.innerHTML = '<div class="db-query-ok">✅ Ausgeführt (keine Rückgabe)</div>';
+      dbLog(`Query OK: ${sql.substring(0,60)}`, 'ok');
+      return;
+    }
+
+    // Tabelle rendern
+    const { columns, values } = res[0];
+    const maxRows = 50;
+    const shown = values.slice(0, maxRows);
+    const more = values.length > maxRows
+      ? `<div class="db-more">… ${values.length - maxRows} weitere Zeilen</div>` : '';
+
+    result.innerHTML = `
+      <div class="db-result-meta">${values.length} Zeile(n) · ${columns.length} Spalte(n)</div>
+      <div class="db-table-scroll">
+        <table class="db-result-table">
+          <thead><tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+          <tbody>${shown.map(row =>
+            `<tr>${row.map(cell =>
+              `<td>${cell === null ? '<em class="db-null">NULL</em>' : String(cell)}</td>`
+            ).join('')}</tr>`
+          ).join('')}</tbody>
+        </table>
+      </div>${more}`;
+    dbLog(`Query: ${values.length} Zeile(n) zurückgegeben.`, 'ok');
+  } catch (err) {
+    result.innerHTML = `<div class="db-query-error">❌ ${err.message}</div>`;
+    dbLog('❌ Query-Fehler: ' + err.message, 'error');
+  }
+}
+
+/* ── DB als .db herunterladen ──────────────────────────────── */
+function dbExportFile() {
+  if (!_db) { showToast('Keine Datenbank geöffnet!'); return; }
+  try {
+    const data = _db.export();
+    const blob = new Blob([data], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `lernplattform-${date}.db`;
+    a.click();
+    URL.revokeObjectURL(url);
+    dbLog('✅ Datenbank heruntergeladen.', 'ok');
+    showToast('DB gespeichert ✓');
+  } catch (err) {
+    dbLog('❌ Export fehlgeschlagen: ' + err.message, 'error');
+  }
+}
+
+/* ── Tabellenübersicht im Status-Panel ─────────────────────── */
+function dbRefreshStatus() {
+  if (!_db) return;
+  try {
+    const res = _db.exec(
+      `SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`
+    );
+    if (!res.length) return;
+    const tables = res[0].values.map(r => r[0]);
+    const counts = tables.map(t => {
+      try {
+        const c = _db.exec(`SELECT COUNT(*) FROM "${t}"`);
+        return `${t} (${c[0].values[0][0]})`;
+      } catch { return t; }
+    });
+    dbLog(`Tabellen: ${counts.join(' · ')}`, 'info');
+  } catch { /* ignore */ }
+}
+
+/* ── Frage-Formular: richtige Antwort visuell markieren ─────── */
+function qfMarkCorrect(index) {
+  for (let i = 0; i < 4; i++) {
+    const badge = document.getElementById(`qfCorrectBadge${i}`);
+    const field = document.getElementById(`qfOpt${i}`)?.closest('.qf-field-answer');
+    if (!badge || !field) continue;
+    if (i === index) {
+      badge.style.display = 'inline';
+      field.classList.add('qf-field-correct');
+    } else {
+      badge.style.display = 'none';
+      field.classList.remove('qf-field-correct');
+    }
+  }
+}
+
+/* ── Frage in SQLite einfügen ───────────────────────────────── */
+function dbInsertFrage() {
+  if (!_db) { showToast('DB zuerst initialisieren!'); return; }
+
+  const themaVal  = document.getElementById('qfThema')?.value || '';
+  const frageText = (document.getElementById('qfFrage')?.value || '').trim();
+  const erklaerung = (document.getElementById('qfErklaerung')?.value || '').trim();
+  const opts      = [0,1,2,3].map(i => (document.getElementById(`qfOpt${i}`)?.value || '').trim());
+  const correctEl = document.querySelector('input[name="qfCorrect"]:checked');
+  const result    = document.getElementById('qfResult');
+
+  result.classList.remove('hidden');
+
+  // Validierung
+  if (!themaVal) {
+    result.innerHTML = '<div class="db-query-error">❌ Bitte ein Thema auswählen.</div>';
+    return;
+  }
+  if (!frageText) {
+    result.innerHTML = '<div class="db-query-error">❌ Fragetext darf nicht leer sein.</div>';
+    return;
+  }
+  if (opts.some(o => !o)) {
+    result.innerHTML = '<div class="db-query-error">❌ Alle 4 Antwortmöglichkeiten ausfüllen.</div>';
+    return;
+  }
+  if (!correctEl) {
+    result.innerHTML = '<div class="db-query-error">❌ Bitte die richtige Antwort markieren (✓-Button).</div>';
+    return;
+  }
+
+  const korrektIndex = parseInt(correctEl.value, 10);
+  const [profId, examId, topicKey] = themaVal.split('|');
+
+  try {
+    // Thema-ID aus DB lesen
+    const themaRes = _db.exec(
+      `SELECT id FROM themen WHERE thema_key='${dbEscape(topicKey)}'
+       AND pruefung_id='${dbEscape(examId)}'
+       AND ausbildungsberuf_id='${dbEscape(profId)}'`
+    );
+
+    let themaId;
+    if (themaRes.length && themaRes[0].values.length) {
+      themaId = themaRes[0].values[0][0];
+    } else {
+      result.innerHTML = '<div class="db-query-error">❌ Thema nicht in der DB gefunden. Bitte zuerst fi-si-schema.sql + fi-si-seed.sql einspielen.</div>';
+      return;
+    }
+
+    // Maximale Reihenfolge für dieses Thema
+    const maxOrdRes = _db.exec(`SELECT MAX(reihenfolge) FROM fragen WHERE thema_id=${themaId}`);
+    const maxOrd = (maxOrdRes[0]?.values[0][0] || 0) + 1;
+
+    // Frage einfügen
+    _db.run(
+      `INSERT INTO fragen (thema_id, fragetext, erklaerung, korrekt_index, reihenfolge)
+       VALUES (${themaId}, '${dbEscape(frageText)}', '${dbEscape(erklaerung)}', ${korrektIndex}, ${maxOrd})`
+    );
+    const frageId = _db.exec('SELECT last_insert_rowid()')[0].values[0][0];
+
+    // Antwortoptionen einfügen
+    opts.forEach((text, pos) => {
+      _db.run(
+        `INSERT INTO antwortoptionen (frage_id, position, text)
+         VALUES (${frageId}, ${pos}, '${dbEscape(text)}')`
+      );
+    });
+
+    result.innerHTML = `
+      <div class="db-query-ok">
+        ✅ Frage gespeichert (ID ${frageId}) · Thema: ${profId.toUpperCase()} / ${examId.toUpperCase()} / ${topicKey}
+        <div class="qf-preview">
+          <strong>${frageText}</strong><br>
+          ${opts.map((o,i) => `<span class="${i===korrektIndex?'qf-prev-correct':'qf-prev-wrong'}">${['A','B','C','D'][i]}) ${o}</span>`).join('  ')}
+        </div>
+      </div>`;
+
+    dbLog(`✅ Frage #${frageId} eingetragen: "${frageText.substring(0,50)}…"`, 'ok');
+
+    // Formular zurücksetzen
+    document.getElementById('qfFrage').value = '';
+    document.getElementById('qfErklaerung').value = '';
+    [0,1,2,3].forEach(i => {
+      document.getElementById(`qfOpt${i}`).value = '';
+      document.getElementById(`qfCorrectBadge${i}`).style.display = 'none';
+      document.getElementById(`qfOpt${i}`)?.closest('.qf-field-answer')?.classList.remove('qf-field-correct');
+    });
+    document.querySelectorAll('input[name="qfCorrect"]').forEach(r => r.checked = false);
+
+  } catch (err) {
+    result.innerHTML = `<div class="db-query-error">❌ ${err.message}</div>`;
+    dbLog('❌ Insert-Fehler: ' + err.message, 'error');
+  }
+}
+
 /* ── Boot ──────────────────────────────────────────────────── */
 setTimeout(() => {
+  applyTheme(getTheme());
   const s = loadSettings();
   applySettings(s);
   showHome();
